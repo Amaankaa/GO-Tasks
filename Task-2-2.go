@@ -8,21 +8,28 @@ import (
 	"unicode"
 )
 
-func main(){
+func main() {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter a string: ")
 	input, _ := reader.ReadString('\n')
 	input = strings.TrimSpace(input)
 
-	left, right := 0, len(input) - 1
+	// Remove all non-letter characters
+	var cleaned strings.Builder
+	for _, r := range input {
+		if unicode.IsLetter(r) {
+			cleaned.WriteRune(unicode.ToLower(r))
+		}
+	}
+	cleanedStr := cleaned.String()
+
+	left, right := 0, len(cleanedStr)-1
 	flag := true
 
 	for left < right {
-		for (left < right) && !unicode.IsLetter(rune(input[left])) { left++ }
-		for (left < right) && !unicode.IsLetter(rune(input[right])) { right-- }
-
-		if !(strings.EqualFold(strings.ToLower(string(input[left])),strings.ToLower(string(input[right])))) {
+		if cleanedStr[left] != cleanedStr[right] {
 			flag = false
+			break
 		}
 		left++
 		right--
@@ -30,4 +37,3 @@ func main(){
 
 	fmt.Println(flag)
 }
-
