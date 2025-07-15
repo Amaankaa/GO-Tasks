@@ -19,7 +19,7 @@ func main() {
 
 	subjectToGrade := make(map[string]int)
 
-	average := 0
+	total := 0
 	for i:=0; i<numberOfSubjects; i++{
 		var subject string
 		fmt.Printf("Enter the name of subject(%v): ", i + 1)
@@ -34,7 +34,7 @@ func main() {
 		}
 
 		subjectToGrade[subject] = grade
-		average += subjectToGrade[subject]
+		total += subjectToGrade[subject]
 	}
 
 	fmt.Println(fullName)
@@ -42,5 +42,10 @@ func main() {
 		fmt.Printf("Subject: %v | Grade: %v", key, val)
 		fmt.Print("\n")
 	}
-	fmt.Println("Average Grade", average/numberOfSubjects)
+	fmt.Println("Average Grade", calculateAverage(total, numberOfSubjects))
+}
+
+func calculateAverage(total, numberOfSubjects int) float64 {
+	avg := float64(total) / float64(numberOfSubjects)
+	return float64(int(avg*100)) / 100
 }
