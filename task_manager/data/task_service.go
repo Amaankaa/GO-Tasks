@@ -1,61 +1,140 @@
 package data
 
 import (
-	"sync"
+	"context"
+	"errors"
+	"os"
+	"time"
+
 	"task_manager/models"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
-	tasks  = make(map[int]models.Task)
-	nextID = 1
-	mu     sync.Mutex
+	client  *mongo.Client
+	db      *mongo.Database
+	taskCol *mongo.Collection
 )
 
-func GetAllTasks() []models.Task {
-	mu.Lock()
-	defer mu.Unlock()
-	result := make([]models.Task, 0, len(tasks))
-	for _, task := range tasks {
-		result = append(result, task)
+func InitMongo() error {
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		uri = "mongodb://localhost:27017"
 	}
-	return result
-}
-
-func GetTaskByID(id int) (models.Task, bool) {
-	mu.Lock()
-	defer mu.Unlock()
-	task, found := tasks[id]
-	return task, found
-}
-
-func CreateTask(task models.Task) models.Task {
-	mu.Lock()
-	defer mu.Unlock()
-	task.ID = nextID
-	tasks[nextID] = task
-	nextID++
-	return task
-}
-
-func UpdateTask(id int, updated models.Task) (models.Task, bool) {
-	mu.Lock()
-	defer mu.Unlock()
-	_, found := tasks[id]
-	if !found {
-		return models.Task{}, false
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	var err error
+	client, err = mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	if err != nil {
+		return err
 	}
-	updated.ID = id
-	tasks[id] = updated
-	return updated, true
+	db = client.Database("taskdb")
+	taskCol = db.Collection("tasks")
+	return nil
 }
 
-func DeleteTask(id int) bool {
-	mu.Lock()
-	defer mu.Unlock()
-	_, found := tasks[id]
-	if !found {
-		return false
+func GetAllTasks() ([]models.Task, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cur, err := taskCol.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
 	}
-	delete(tasks, id)
-	return true
+
+	defer cur.Close(ctx)
+
+	var tasks []models.Task
+
+	for cur.Next(ctx) {
+		var task models.Task
+
+		if err := cur.Decode(&task); err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, task)
+	}
+	
+	if err := cur.Err(); err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+func GetTaskByID(id string) (models.Task, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return models.Task{}, errors.New("invalid id format")
+	}
+	var task models.Task
+	err = taskCol.FindOne(ctx, bson.M{"_id": objID}).Decode(&task)
+	if err == mongo.ErrNoDocuments {
+		return models.Task{}, errors.New("not found")
+	}
+	return task, err
+}
+
+func CreateTask(task models.Task) (models.Task, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	task.ID = primitive.NewObjectID()
+	_, err := taskCol.InsertOne(ctx, task)
+	return task, err
+}
+
+func UpdateTask(id string, updated models.Task) (models.Task, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objID, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return models.Task{}, errors.New("invalid id format")
+	}
+
+	filter := bson.M{"_id":objID}
+	update := bson.M{
+		"$set": bson.M{
+			"title": updated.Title, 
+			"description": updated.Description,
+			"due_date": updated.DueDate, 
+			"status": updated.Status,
+		},
+	}
+
+	res, err := taskCol.UpdateOne(ctx, filter, update)
+
+	if err != nil {
+		return models.Task{}, err
+	}
+
+	if res.MatchedCount == 0 {
+		return models.Task{}, errors.New("not found")
+	}
+
+	return GetTaskByID(id)
+}
+
+func DeleteTask(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return errors.New("invalid id format")
+	}
+	res, err := taskCol.DeleteOne(ctx, bson.M{"_id": objID})
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
+		return errors.New("not found")
+	}
+	return nil
 }
