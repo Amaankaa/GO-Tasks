@@ -18,6 +18,7 @@ var (
 	client  *mongo.Client
 	db      *mongo.Database
 	taskCol *mongo.Collection
+	userCol *mongo.Collection
 )
 
 func InitMongo() error {
@@ -34,6 +35,7 @@ func InitMongo() error {
 	}
 	db = client.Database("taskdb")
 	taskCol = db.Collection("tasks")
+	userCol = db.Collection("users")
 	return nil
 }
 

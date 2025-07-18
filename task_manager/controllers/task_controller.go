@@ -7,6 +7,7 @@ import (
 	"task_manager/models"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func GetTasks(c *gin.Context) {
@@ -82,4 +83,49 @@ func DeleteTask(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func RegisterUser(c *gin.Context) {
+	var user models.User
+
+	if err := c.ShouldBindJSON(&user); err != nil{
+		c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message":"Internal server error"})
+		return
+	}
+
+	user.Password = string(hashedPassword)
+
+	user, err = data.RegisterUser(user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func LoginUser(c *gin.Context) {
+	var user models.User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error":err.Error()})
+		return
+	}
+
+	existingUser, err := data.LoginUser(user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message":err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, existingUser)
+}
+
+func PromoteUser(c *gin.Context) {
+
 }
