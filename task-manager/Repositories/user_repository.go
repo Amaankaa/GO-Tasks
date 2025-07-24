@@ -47,8 +47,8 @@ func (ur *UserRepository) RegisterUser(user domain.User) (domain.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if user.Username == "" {
-		return domain.User{}, errors.New("username is a required field")
+	if user.Username == "" || user.Password == "" {
+		return domain.User{}, errors.New("fields cannot be empty")
 	}
 
 	var existing domain.User
