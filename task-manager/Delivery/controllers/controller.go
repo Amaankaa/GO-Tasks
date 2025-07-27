@@ -137,3 +137,17 @@ func (ctrl *Controller) Promote(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, updatedUser)
 }
+
+func (ctrl *Controller) GetUserByUsername(c *gin.Context) {
+	username := c.Param("username")
+	user, err := ctrl.userUsecase.GetUserByUsername(username)
+	if err != nil {
+		if err.Error() == "user not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, user)
+}

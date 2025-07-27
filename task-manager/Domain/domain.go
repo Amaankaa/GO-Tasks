@@ -59,6 +59,7 @@ type UserUsecase interface {
 	RegisterUser(user User) (User, error)
 	LoginUser(user User) (LoginResponse, error)
 	PromoteUser(id string) (User, error)
+	GetUserByUsername(username string) (User, error)
 }
 
 // JWTService interface defines JWT operations

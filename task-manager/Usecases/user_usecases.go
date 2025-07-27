@@ -25,3 +25,7 @@ func (uu *UserUsecase) LoginUser(user domain.User) (domain.LoginResponse, error)
 func (uu *UserUsecase) PromoteUser(id string) (domain.User, error) {
 	return uu.userRepo.PromoteUser(id)
 }
+
+func (uu *UserUsecase) GetUserByUsername(username string) (domain.User, error) {
+	return uu.userRepo.GetUserByUsername(username)
+}

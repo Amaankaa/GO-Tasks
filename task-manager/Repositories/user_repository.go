@@ -3,14 +3,12 @@ package repositories
 import (
 	"context"
 	"errors"
-	"os"
 	"task-manager/Domain"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type UserRepository struct {
@@ -19,28 +17,16 @@ type UserRepository struct {
 	passwordService domain.PasswordService
 }
 
-func NewUserRepository(jwtService domain.JWTService, passwordService domain.PasswordService) (*UserRepository, error) {
-	uri := os.Getenv("MONGODB_URI")
-	if uri == "" {
-		uri = "mongodb://localhost:27017"
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
-
-	db := client.Database("taskdb")
-	collection := db.Collection("users")
-
+func NewUserRepository(
+	collection *mongo.Collection,
+	jwtService domain.JWTService,
+	passwordService domain.PasswordService,
+) *UserRepository {
 	return &UserRepository{
 		collection:      collection,
 		jwtService:      jwtService,
 		passwordService: passwordService,
-	}, nil
+	}
 }
 
 func (ur *UserRepository) RegisterUser(user domain.User) (domain.User, error) {

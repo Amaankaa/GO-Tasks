@@ -3,40 +3,22 @@ package repositories
 import (
 	"context"
 	"errors"
-	"os"
 	"task-manager/Domain"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type TaskRepository struct {
 	collection *mongo.Collection
 }
 
-func NewTaskRepository() (*TaskRepository, error) {
-	uri := os.Getenv("MONGODB_URI")
-	if uri == "" {
-		uri = "mongodb://localhost:27017"
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
-
-	db := client.Database("taskdb")
-	collection := db.Collection("tasks")
-
+func NewTaskRepository(collection *mongo.Collection) domain.TaskRepository {
 	return &TaskRepository{
 		collection: collection,
-	}, nil
+	}
 }
 
 func (tr *TaskRepository) GetAllTasks() ([]domain.Task, error) {

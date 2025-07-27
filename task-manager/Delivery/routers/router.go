@@ -27,6 +27,10 @@ func SetupRouter(controller *controllers.Controller, authMiddleware *infrastruct
 
 	// Protected user routes
 	users := r.Group("/users")
+	users.Use(authMiddleware.AuthMiddleware())
+	{
+		users.GET(":username", controller.GetUserByUsername)
+	}
 	users.Use(authMiddleware.AuthMiddleware(), authMiddleware.AdminOnly())
 	{
 		users.POST(":id/promote", controller.Promote)
